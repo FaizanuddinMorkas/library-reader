@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Modal, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView } from "react-native";
+import { Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView } from "react-native";
 import { CameraView, type BarcodeScanningResult, useCameraPermissions } from "expo-camera";
 import { useFocusEffect, useRouter } from "expo-router";
 import ArrowLeft from "lucide-react-native/icons/arrow-left";
@@ -9,9 +9,10 @@ import Keyboard from "lucide-react-native/icons/keyboard";
 import RotateCcw from "lucide-react-native/icons/rotate-ccw";
 import X from "lucide-react-native/icons/x";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { findMockBookByBarcode } from "@/lib/mockData";
+import { booksApi } from "@/lib/api/booksApi";
 import type { Book } from "@/types/book";
 import { BookCover } from "@/components/library/BookCover";
+import { normalizeBarcode } from "@/lib/validation";
 
 export default function ScanScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function ScanScreen() {
   const [unknownCode, setUnknownCode] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualCode, setManualCode] = useState("");
+  const [isLookingUp, setIsLookingUp] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -31,25 +33,37 @@ export default function ScanScreen() {
     }, [])
   );
 
-  const lookUpCode = (rawCode: string) => {
+  const lookUpCode = async (rawCode: string) => {
     if (scanned) return;
+    const code = normalizeBarcode(rawCode);
+    if (!code) {
+      setUnknownCode(rawCode.trim() || "invalid code");
+      setScanned(true);
+      return;
+    }
     setScanned(true);
-    const book = findMockBookByBarcode(rawCode);
-    if (book) {
-      setResult(book);
-      setUnknownCode(null);
-    } else {
+    setIsLookingUp(true);
+    try {
+      const book = await booksApi.getByBarcode(code);
+      router.replace({
+        pathname: "/book/[id]",
+        params: { id: book.id, copyBarcode: book.matchedCopy?.barcode ?? code, copyId: book.matchedCopy?.id ?? "" },
+      });
+    } catch {
       setResult(null);
-      setUnknownCode(rawCode);
+      setUnknownCode(code);
+    } finally {
+      setIsLookingUp(false);
     }
   };
 
-  const onBarcodeScanned = ({ data }: BarcodeScanningResult) => lookUpCode(data);
+  const onBarcodeScanned = ({ data }: BarcodeScanningResult) => { void lookUpCode(data); };
   const reset = () => {
     setScanned(false);
     setResult(null);
     setUnknownCode(null);
     setManualCode("");
+    setIsLookingUp(false);
   };
 
   if (!permission) return <View className="flex-1 bg-ink" />;
@@ -100,16 +114,18 @@ export default function ScanScreen() {
         <View className="flex-1 justify-end bg-black/35">
           <View className="rounded-t-[32px] bg-background p-5 pb-10">
             <View className="w-12 h-1 rounded-full bg-border self-center mb-5" />
-            {result ? (
+            {isLookingUp ? (
+              <View className="items-center py-10"><Text className="text-sm font-semibold text-ink-muted">Looking up book...</Text></View>
+            ) : result ? (
               <>
                 <View className="flex-row items-start">
-                  <BookCover title={result.name} className="w-16 h-20 rounded-2xl" fallbackColor={result.coverColor} />
+                  <BookCover title={result.name} className="w-16 h-20 rounded-2xl" fallbackColor={result.coverColor} coverUrl={result.coverUrl} />
                   <View className="ml-4 flex-1"><Text className="text-xl font-black text-ink">{result.name}</Text><Text className="text-sm text-ink-muted mt-1">{result.authorName}</Text><View className={`self-start mt-3 px-3 py-1 rounded-full ${result.availableCopies ? "bg-success-50" : "bg-danger-50"}`}><Text className={`text-[10px] font-bold ${result.availableCopies ? "text-success-700" : "text-danger-600"}`}>{result.availableCopies ? `${result.availableCopies} AVAILABLE` : "CURRENTLY UNAVAILABLE"}</Text></View></View>
                 </View>
                 <View className="rounded-2xl bg-white border border-border p-4 mt-5 flex-row justify-between"><View><Text className="text-[10px] text-ink-muted">SHELF</Text><Text className="text-sm font-bold text-ink mt-1">{result.shelfNumber}</Text></View><View><Text className="text-[10px] text-ink-muted">BARCODE</Text><Text className="text-sm font-bold text-ink mt-1">{result.barcode}</Text></View></View>
               </>
             ) : (
-              <View className="items-center py-2"><View className="w-20 h-20 rounded-[28px] bg-peach items-center justify-center"><X size={34} stroke="#EA580C" /></View><Text className="text-xl font-black text-ink mt-5">Book not found</Text><Text className="text-sm text-ink-muted text-center mt-2">No mock book matches “{unknownCode}”. Try BK-001-001, CP-002-001, or enter another code.</Text></View>
+              <View className="items-center py-2"><View className="w-20 h-20 rounded-[28px] bg-peach items-center justify-center"><X size={34} stroke="#EA580C" /></View><Text className="text-xl font-black text-ink mt-5">Book not found</Text><Text className="text-sm text-ink-muted text-center mt-2">No library book matches “{unknownCode}”. Try another book or copy barcode.</Text></View>
             )}
             <TouchableOpacity onPress={reset} className="h-14 rounded-2xl bg-primary flex-row items-center justify-center mt-6"><RotateCcw size={18} stroke="#FFFFFF" /><Text className="text-white font-bold ml-2">Scan another book</Text></TouchableOpacity>
           </View>
@@ -118,17 +134,25 @@ export default function ScanScreen() {
 
       <Modal visible={manualOpen} transparent animationType="fade" onRequestClose={() => setManualOpen(false)}>
         <KeyboardAvoidingView
-          behavior="padding"
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1"
         >
-          <View className="flex-1 bg-black/45 items-center justify-center px-6">
-            <View className="w-full rounded-[28px] bg-background p-5">
-              <Text className="text-xl font-black text-ink">Enter a library code</Text>
-              <Text className="text-sm text-ink-muted mt-1">Use a book or copy barcode.</Text>
-              <TextInput autoFocus value={manualCode} onChangeText={setManualCode} autoCapitalize="characters" placeholder="BK-001-001" placeholderTextColor="#8A857C" className="h-14 rounded-2xl bg-white border border-border px-4 text-base text-ink mt-5" />
-              <View className="flex-row gap-3 mt-4"><TouchableOpacity onPress={() => setManualOpen(false)} className="flex-1 h-12 rounded-2xl border border-border items-center justify-center"><Text className="font-bold text-ink-soft">Cancel</Text></TouchableOpacity><TouchableOpacity disabled={!manualCode.trim()} onPress={() => { setManualOpen(false); lookUpCode(manualCode); }} className="flex-1 h-12 rounded-2xl bg-primary items-center justify-center"><Text className="font-bold text-white">Look up</Text></TouchableOpacity></View>
+          <ScrollView
+            className="flex-1"
+            automaticallyAdjustKeyboardInsets
+            contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+            keyboardDismissMode="none"
+            keyboardShouldPersistTaps="handled"
+          >
+            <View className="flex-1 bg-black/45 justify-center px-6 py-6">
+              <View className="w-full rounded-[28px] bg-background p-5">
+                <Text className="text-xl font-black text-ink">Enter a library code</Text>
+                <Text className="text-sm text-ink-muted mt-1">Use a book or copy barcode.</Text>
+                <TextInput maxLength={120} autoFocus value={manualCode} onChangeText={setManualCode} autoCapitalize="characters" placeholder="BK-001-001" placeholderTextColor="#8A857C" className="h-14 rounded-2xl bg-white border border-border px-4 text-base text-ink mt-5" />
+                <View className="flex-row gap-3 mt-4"><TouchableOpacity onPress={() => setManualOpen(false)} className="flex-1 h-12 rounded-2xl border border-border items-center justify-center"><Text className="font-bold text-ink-soft">Cancel</Text></TouchableOpacity><TouchableOpacity disabled={!manualCode.trim()} onPress={() => { setManualOpen(false); void lookUpCode(manualCode); }} className="flex-1 h-12 rounded-2xl bg-primary items-center justify-center"><Text className="font-bold text-white">Look up</Text></TouchableOpacity></View>
+              </View>
             </View>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
     </View>

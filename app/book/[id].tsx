@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import BookOpen from "lucide-react-native/icons/book-open";
@@ -5,15 +6,12 @@ import MapPin from "lucide-react-native/icons/map-pin";
 import Tag from "lucide-react-native/icons/tag";
 import Hash from "lucide-react-native/icons/hash";
 import ArrowLeft from "lucide-react-native/icons/arrow-left";
-import Users from "lucide-react-native/icons/users";
-import Clock from "lucide-react-native/icons/clock";
-import CheckCircle from "lucide-react-native/icons/circle-check-big";
-import AlertCircle from "lucide-react-native/icons/circle-alert";
 import { Screen } from "@/components/ui/Screen";
 import { Button } from "@/components/ui/Button";
-import { mockBooks, mockLoans } from "@/lib/mockData";
+import { useBook } from "@/hooks/useBook";
 import { formatDate } from "@/lib/utils";
 import { BookCover } from "@/components/library/BookCover";
+import { borrowRequestsApi } from "@/lib/api/borrowRequestsApi";
 
 const STATUS_CONFIG = {
   available: { label: "Available", color: "#059669", bg: "#D1FAE5" },
@@ -23,8 +21,31 @@ const STATUS_CONFIG = {
 
 export default function BookDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const book = mockBooks.find((b) => b.id === id);
+  const { id, copyBarcode } = useLocalSearchParams<{ id: string; copyBarcode?: string }>();
+  const { book, isLoading } = useBook(id);
+  const [requestState, setRequestState] = useState<"idle" | "submitting" | "pending" | "error">("idle");
+  const [requestMessage, setRequestMessage] = useState<string>();
+
+  const requestBorrow = async () => {
+    if (!copyBarcode) {
+      router.push("/scan");
+      return;
+    }
+    setRequestState("submitting");
+    setRequestMessage(undefined);
+    try {
+      const request = await borrowRequestsApi.create(copyBarcode);
+      setRequestState("pending");
+      setRequestMessage(`Request sent. Please visit the desk within 1 hour (until ${new Date(request.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}).`);
+    } catch (error) {
+      setRequestState("error");
+      setRequestMessage(error instanceof Error ? error.message : "Unable to send borrow request");
+    }
+  };
+
+  if (isLoading) {
+    return <Screen scroll={false}><View className="flex-1 items-center justify-center"><Text className="text-sm text-ink-muted">Loading book details...</Text></View></Screen>;
+  }
 
   if (!book) {
     return (
@@ -66,7 +87,7 @@ export default function BookDetailScreen() {
         {/* Hero Section */}
         <View className="flex-row gap-4 mb-6">
           {/* Cover */}
-          <BookCover title={book.name} className="w-28 h-40 rounded-2xl shadow-card" fallbackColor={book.coverColor} />
+          <BookCover title={book.name} className="w-28 h-40 rounded-2xl shadow-card" fallbackColor={book.coverColor} coverUrl={book.coverUrl} />
 
           {/* Title + Meta */}
           <View className="flex-1 justify-center">
@@ -99,12 +120,15 @@ export default function BookDetailScreen() {
         {/* Borrow / Reserve Actions */}
         <View className="flex-row gap-3 mb-6">
           <Button
-            title={book.status === "out-of-stock" ? "Reserve Book" : "Borrow Book"}
-            onPress={() => {}}
+            title={requestState === "pending" ? "Request pending at library desk" : copyBarcode ? "Request to borrow" : "Scan copy QR to borrow"}
+            onPress={() => { void requestBorrow(); }}
             className="flex-1"
+            loading={requestState === "submitting"}
+            disabled={requestState === "pending" || book.status === "out-of-stock"}
             variant={book.status === "out-of-stock" ? "secondary" : "primary"}
           />
         </View>
+        {requestMessage ? <Text className={`text-sm mb-5 ${requestState === "error" ? "text-danger-600" : "text-success-700"}`}>{requestMessage}</Text> : null}
 
         {/* Quick Meta Chips */}
         <View className="flex-row flex-wrap gap-2 mb-6">
@@ -112,6 +136,12 @@ export default function BookDetailScreen() {
             <Tag size={13} stroke="#8A857C" />
             <Text className="text-xs font-medium text-ink">{book.category}</Text>
           </View>
+          {book.volumeNo ? (
+            <View className="flex-row items-center gap-1.5 bg-white border border-border rounded-full px-3 py-2">
+              <BookOpen size={13} stroke="#8A857C" />
+              <Text className="text-xs font-medium text-ink">Volume {book.volumeNo}</Text>
+            </View>
+          ) : null}
           <View className="flex-row items-center gap-1.5 bg-white border border-border rounded-full px-3 py-2">
             <BookOpen size={13} stroke="#8A857C" />
             <Text className="text-xs font-medium text-ink">{readingTime}h read</Text>
@@ -142,76 +172,30 @@ export default function BookDetailScreen() {
           </View>
         ) : null}
 
+        {book.volumes && book.volumes.length > 1 ? (
+          <View className="rounded-[20px] bg-white border border-border p-4 mb-3">
+            <Text className="text-[10px] text-ink-muted uppercase tracking-wider mb-2">Other volumes in this branch</Text>
+            {book.volumes.filter((volume) => volume.id !== book.id).map((volume) => (
+              <TouchableOpacity
+                key={volume.id}
+                onPress={() => router.push(`/book/${volume.id}` as never)}
+                className="flex-row items-center justify-between border-t border-border py-3"
+              >
+                <View>
+                  <Text className="text-sm font-semibold text-ink">Volume {volume.volumeNo ?? "—"}</Text>
+                  <Text className="text-xs text-ink-muted mt-1">Shelf {volume.shelfNumber} · {volume.availableCopies} of {volume.copies} available</Text>
+                </View>
+                <Text className="text-xs font-bold text-ink-soft">View</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
+
         {/* Added date */}
         <View className="rounded-[20px] bg-muted-50 p-4">
           <Text className="text-xs text-ink-soft">Added to library on {formatDate(book.createdAt)}</Text>
         </View>
 
-        {/* Lending History */}
-        {(() => {
-          const history = mockLoans.filter((l) => l.bookId === book.id);
-          if (history.length === 0) return null;
-          return (
-            <View className="mt-6">
-              <View className="flex-row items-center gap-2 mb-3">
-                <Users size={16} stroke="#8A857C" />
-                <Text className="text-sm font-bold text-ink">Borrowing History</Text>
-                <View className="ml-auto bg-primary-50 rounded-full px-2.5 py-0.5">
-                  <Text className="text-xs font-bold text-primary">{history.length} times</Text>
-                </View>
-              </View>
-
-              {history.map((loan) => {
-                const isOverdue = loan.status === "overdue";
-                const isReturned = loan.status === "returned";
-                const statusIcon = isReturned ? (
-                  <CheckCircle size={14} stroke="#059669" />
-                ) : isOverdue ? (
-                  <AlertCircle size={14} stroke="#DC2626" />
-                ) : (
-                  <Clock size={14} stroke="#2563EB" />
-                );
-                const statusLabel = isReturned ? "Returned" : isOverdue ? "Overdue" : "Active";
-                const statusColor = isReturned ? "text-green-700" : isOverdue ? "text-red-600" : "text-blue-600";
-                const rowBg = isOverdue ? "bg-red-50" : isReturned ? "bg-green-50" : "bg-blue-50";
-
-                return (
-                  <View key={loan.id} className={`rounded-[16px] p-3 mb-2 ${rowBg}`}>
-                    <View className="flex-row items-center justify-between mb-1.5">
-                      <View className="flex-row items-center gap-1.5">
-                        {statusIcon}
-                        <Text className={`text-xs font-bold ${statusColor}`}>{statusLabel}</Text>
-                      </View>
-                      <Text className="text-xs text-ink-soft">{formatDate(loan.issueDate)}</Text>
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                      <Text className="text-xs text-ink-soft flex-1">
-                        Borrowed by {loan.readerName}
-                      </Text>
-                      {loan.returnDate && (
-                        <Text className="text-xs text-ink-soft">
-                          Returned {formatDate(loan.returnDate)}
-                        </Text>
-                      )}
-                      {!loan.returnDate && loan.dueDate && (
-                        <Text className="text-xs text-ink-soft">
-                          Due {formatDate(loan.dueDate)}
-                        </Text>
-                      )}
-                    </View>
-                    {loan.fineAmount && loan.fineAmount > 0 && (
-                      <View className="mt-1.5 bg-white/60 rounded-lg px-2 py-1 self-start">
-                        <Text className="text-xs font-semibold text-red-600">
-                          Fine: ₹{loan.fineAmount}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          );
-        })()}
       </ScrollView>
     </Screen>
   );

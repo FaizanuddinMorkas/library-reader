@@ -31,6 +31,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -39,7 +40,11 @@ yarn-error.*
 # generated native folders
 /ios
 
+# certificates
+*-certificate.txt
+
 # Android build artifacts
 /android/.gradle/
 /android/app/build/
 /android/build/
+/build/

@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import { router } from "expo-router";
 import BookOpen from "lucide-react-native/icons/book-open";
@@ -63,7 +63,7 @@ export const QuickActionsSheet = forwardRef<QuickActionsSheetHandle>(
         icon: Smartphone,
         color: "#3B5998",
         background: "#E8EEF7",
-        onPress: () => dismissAndRun(() => router.push("/ebook/eb_001")),
+        onPress: () => dismissAndRun(() => Alert.alert("E-Library", "Open an e-book from the library catalog to start reading.")),
       },
       {
         label: "Reader card",
@@ -81,7 +81,11 @@ export const QuickActionsSheet = forwardRef<QuickActionsSheetHandle>(
         background: "#EEF4C8",
         onPress: () => {
           const lastRead = getLastReadBook();
-          dismissAndRun(() => router.push(`/ebook/${lastRead?.bookId ?? "eb_001"}`));
+          if (!lastRead) {
+            dismissAndRun(() => Alert.alert("Continue reading", "You do not have a saved e-book yet."));
+            return;
+          }
+          dismissAndRun(() => router.push(`/ebook/${lastRead.bookId}`));
         },
       },
     ];
@@ -132,7 +136,7 @@ export const QuickActionsSheet = forwardRef<QuickActionsSheetHandle>(
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-ink" numberOfLines={2}>{user?.name ?? "Library Reader"}</Text>
                   <Text className="text-xs text-ink-muted mt-1">READER ID</Text>
-                  <Text className="text-sm font-semibold text-primary-700 mt-0.5">{user?.readerId ?? "READ-2024-001"}</Text>
+                  <Text className="text-sm font-semibold text-primary-700 mt-0.5">{user?.readerId ?? "—"}</Text>
                   <View className="self-start mt-3 px-3 py-1 rounded-full bg-lime">
                     <Text className="text-xs font-semibold text-ink-soft">Active member</Text>
                   </View>

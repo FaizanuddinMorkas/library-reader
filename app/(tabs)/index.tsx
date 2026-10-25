@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -18,15 +18,20 @@ import { calculateDaysUntilDue, getTimeOfDay } from "@/lib/utils";
 import { SmartAlert } from "@/components/home/SmartAlert";
 import { LoanCard } from "@/components/home/LoanCard";
 import { EmptyStateIllustration } from "@/components/home/EmptyStateIllustration";
-import { CATEGORIES, mockBooks } from "@/lib/mockData";
+import { useBooks } from "@/hooks/useBooks";
 import { BookCover } from "@/components/library/BookCover";
 
 export default function DashboardScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const { activeLoans, overdueLoans, isLoading, isRefreshing, refresh } =
+  const { activeLoans, overdueLoans, isLoading, isRefreshing: loansRefreshing, error: loansError, refresh: refreshLoans } =
     useLending();
+  const { books, categories, error: booksError, isRefreshing: booksRefreshing, refresh: refreshBooks } = useBooks();
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const currentLoans = [...overdueLoans, ...activeLoans];
+  const refresh = useCallback(() => {
+    void Promise.all([refreshLoans(), refreshBooks()]);
+  }, [refreshBooks, refreshLoans]);
 
   const greeting = `Good ${getTimeOfDay()}`;
   const dueSoonCount = activeLoans.filter((loan) => {
@@ -34,11 +39,9 @@ export default function DashboardScreen() {
     return daysUntilDue <= 3 && daysUntilDue > 0;
   }).length;
 
-  // Find loans due within 3 days (used by both alerts and currently borrowed)
-  const dueSoonLoans = activeLoans.filter((loan) => {
-    const daysUntilDue = calculateDaysUntilDue(loan.dueDate);
-    return daysUntilDue <= 3 && daysUntilDue >= 0;
-  });
+  const browseCategories = categories
+    .filter((category) => category !== "All")
+    .slice(0, 6);
 
   if (isLoading) {
     return (
@@ -52,12 +55,23 @@ export default function DashboardScreen() {
     );
   }
 
+  if (loansError && activeLoans.length === 0 && overdueLoans.length === 0) {
+    return (
+      <Screen>
+        <View className="items-center justify-center flex-1 px-8">
+          <Text className="text-lg font-bold text-ink">Unable to load your library</Text>
+          <Text className="text-sm text-ink-muted text-center mt-2">Check your connection and pull to refresh.</Text>
+        </View>
+      </Screen>
+    );
+  }
+
   const handleDismissAlert = (alertId: string) => {
     setDismissedAlerts((prev) => new Set(prev).add(alertId));
   };
 
   return (
-    <Screen refreshing={isRefreshing} onRefresh={refresh}>
+    <Screen refreshing={loansRefreshing || booksRefreshing} onRefresh={refresh}>
       <View className="pt-10 mb-5 flex-row items-center justify-between">
         <View>
           <Text className="text-xs font-semibold tracking-[2px] text-primary-700 uppercase">{greeting}</Text>
@@ -117,7 +131,7 @@ export default function DashboardScreen() {
 
       <SectionTitle title="Browse by category" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 20 }}>
-        {CATEGORIES.slice(1, 7).map((category, index) => (
+        {browseCategories.map((category, index) => (
           <TouchableOpacity
             key={category}
             onPress={() => router.push({ pathname: "/(tabs)/library", params: { category } })}
@@ -129,7 +143,7 @@ export default function DashboardScreen() {
 
       <SectionTitle title="Currently borrowed" actionLabel="View all" onAction={() => router.push("/(tabs)/my-library")} />
 
-      {activeLoans.length === 0 ? (
+      {currentLoans.length === 0 ? (
         <EmptyStateIllustration
           illustration="no-loans"
           title="No active loans"
@@ -139,16 +153,15 @@ export default function DashboardScreen() {
         />
       ) : (
         <View className="gap-3">
-          {activeLoans.slice(0, 3).map((loan) => {
-            const book = mockBooks.find((b) => b.id === loan.bookId);
+          {currentLoans.slice(0, 3).map((loan) => {
             return (
               <LoanCard
                 key={loan.id}
                 loan={{
                   ...loan,
-                  author: book?.authorName ?? "Unknown Author",
-                  totalPages: book?.totalPages,
-                  coverColor: book?.coverColor,
+                  author: loan.book?.authorName ?? "Unknown Author",
+                  totalPages: loan.book?.totalPages,
+                  coverUrl: loan.book?.coverUrl,
                 }}
                 onPress={() => router.push(`/loan/${loan.id}`)}
               />
@@ -160,14 +173,16 @@ export default function DashboardScreen() {
       <View className="mt-7">
         <SectionTitle title="Recently added" actionLabel="See all" onAction={() => router.push("/(tabs)/library")} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 12 }}>
-          {mockBooks.slice(0, 4).map((book, index) => (
+          {booksError ? (
+            <Text className="text-sm text-ink-muted">Catalog unavailable right now.</Text>
+          ) : books.slice(0, 4).map((book) => (
             <TouchableOpacity
               key={book.id}
               style={{ width: 130 }}
               onPress={() => router.push(`/book/${book.id}`)}
               className="rounded-2xl bg-white border border-border p-3"
             >
-              <BookCover title={book.name} className="w-full aspect-[3/4] rounded-xl mb-3" fallbackColor={book.coverColor} />
+              <BookCover title={book.name} className="w-full aspect-[3/4] rounded-xl mb-3" fallbackColor={book.coverColor} coverUrl={book.coverUrl} />
               <Text className="text-sm font-bold text-ink" numberOfLines={2}>{book.name}</Text>
               <Text className="text-[11px] text-ink-soft mt-1" numberOfLines={1}>{book.authorName}</Text>
               <View className={`self-start mt-2 px-2 py-0.5 rounded-full ${book.availableCopies > 0 ? "bg-green-100" : "bg-red-100"}`}>

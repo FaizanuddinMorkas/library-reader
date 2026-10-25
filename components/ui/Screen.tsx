@@ -4,6 +4,7 @@ import {
   ScrollView,
   RefreshControl,
   KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { cn } from "@/lib/utils";
@@ -45,12 +46,16 @@ export function Screen({
   );
 
   const content = (
-    <KeyboardAvoidingView behavior="padding" className="flex-1">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      className="flex-1"
+    >
       <View className={cn("flex-1 bg-background", className)}>
         {header}
         {scroll ? (
           <ScrollView
             className="flex-1"
+            automaticallyAdjustKeyboardInsets
             contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
             keyboardShouldPersistTaps="handled"
             refreshControl={

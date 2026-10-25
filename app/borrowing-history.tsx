@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import BookOpen from "lucide-react-native/icons/book-open";
 import Calendar from "lucide-react-native/icons/calendar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Screen } from "@/components/ui/Screen";
-import { mockBorrowingHistory, mockBooks, mockLoans } from "@/lib/mockData";
+import { useLending } from "@/hooks/useLending";
 import { formatDate } from "@/lib/utils";
 import type { LendingRecord } from "@/types/reader";
 import { BookCover } from "@/components/library/BookCover";
@@ -24,12 +24,12 @@ const STATUS_CONFIG: Record<
 export default function BorrowingHistoryScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterType>("all");
+  const { loans: allRecords, isLoading } = useLending();
 
-  const allRecords: LendingRecord[] = [...mockBorrowingHistory, ...mockLoans];
-  const filtered =
+  const filtered = useMemo(() =>
     filter === "all"
       ? allRecords
-      : allRecords.filter((r) => r.status === (filter === "active" ? "checked-out" : filter));
+      : allRecords.filter((r) => r.status === (filter === "active" ? "checked-out" : filter)), [allRecords, filter]);
 
   const stats = {
     total: allRecords.length,
@@ -37,6 +37,10 @@ export default function BorrowingHistoryScreen() {
     active: allRecords.filter((r) => r.status === "checked-out").length,
     overdue: allRecords.filter((r) => r.status === "overdue").length,
   };
+
+  if (isLoading) {
+    return <Screen scroll={false}><View className="flex-1 items-center justify-center"><Text className="text-sm text-ink-muted">Loading borrowing history...</Text></View></Screen>;
+  }
 
   return (
     <Screen scroll={false}>
@@ -111,14 +115,14 @@ export default function BorrowingHistoryScreen() {
           ) : (
             filtered.map((record, index) => {
               const statusInfo = STATUS_CONFIG[record.status];
-              const book = mockBooks.find((item) => item.id === record.bookId);
               return (
                 <TouchableOpacity
                   key={record.id}
+                  onPress={() => router.push(`/loan/${record.id}`)}
                   className="rounded-[24px] bg-white border border-border p-4 flex-row items-center"
                   activeOpacity={0.7}
                 >
-                  <BookCover title={record.bookTitle} className="w-12 h-16 rounded-2xl shrink-0" fallbackColor={book?.coverColor ?? statusInfo.bg} />
+                  <BookCover title={record.bookTitle} className="w-12 h-16 rounded-2xl shrink-0" fallbackColor={statusInfo.bg} coverUrl={record.book?.coverUrl} />
                   <View className="ml-3 flex-1">
                     <Text
                       className="text-sm font-bold text-ink"

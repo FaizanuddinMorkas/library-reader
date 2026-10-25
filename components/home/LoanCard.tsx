@@ -19,6 +19,7 @@ interface LoanCardProps {
     currentPage?: number;
     totalPages?: number;
     coverColor?: string;
+    coverUrl?: string;
   };
   onPress: () => void;
 }
@@ -36,7 +37,7 @@ export function LoanCard({ loan, onPress }: LoanCardProps) {
       <Card className="relative overflow-hidden">
         <View className="flex-row items-start">
           <View className="w-16 h-20 rounded-xl relative overflow-hidden">
-            <BookCover title={loan.bookTitle} className="w-full h-full" fallbackColor={loan.coverColor} />
+            <BookCover title={loan.bookTitle} className="w-full h-full" fallbackColor={loan.coverColor} coverUrl={loan.coverUrl} />
             {isOverdue && (
               <View className="absolute top-1 right-1">
                 <View className="w-5 h-5 rounded-full bg-danger/90 items-center justify-center">

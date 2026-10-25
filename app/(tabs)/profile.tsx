@@ -4,11 +4,9 @@ import { useRouter } from "expo-router";
 import Bell from "lucide-react-native/icons/bell";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import CircleHelp from "lucide-react-native/icons/circle-question-mark";
-import Contact from "lucide-react-native/icons/contact";
 import FileText from "lucide-react-native/icons/file-text";
 import Globe from "lucide-react-native/icons/globe";
 import Heart from "lucide-react-native/icons/heart";
-import Info from "lucide-react-native/icons/info";
 import Lock from "lucide-react-native/icons/lock";
 import LogOut from "lucide-react-native/icons/log-out";
 import Mail from "lucide-react-native/icons/mail";
@@ -24,13 +22,16 @@ import { SectionTitle } from "@/components/ui/SectionTitle";
 import { LibraryCard } from "@/components/profile/LibraryCard";
 import { useAuthStore } from "@/store/authStore";
 import { useAppTheme } from "@/hooks/useTheme";
-import { mockBorrowingHistory, mockLoans } from "@/lib/mockData";
+import { useLending } from "@/hooks/useLending";
+import { useReaderProfile } from "@/hooks/useReaderProfile";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const { isDark, setTheme } = useAppTheme();
+  const { profile } = useReaderProfile();
+  const { loans, returnedLoans } = useLending();
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -231,8 +232,8 @@ export default function ProfileScreen() {
         </View>
         <View className="flex-row mt-5 pt-4 border-t border-white/70">
           {[
-            { label: "Borrowed", value: mockLoans.length },
-            { label: "Returned", value: mockBorrowingHistory.length },
+            { label: "Borrowed", value: loans.length },
+            { label: "Returned", value: returnedLoans.length },
             { label: "Saved", value: 4 },
           ].map(({ label, value }, index) => (
             <View key={label} className={`flex-1 items-center ${index ? "border-l border-white/70" : ""}`}>
@@ -246,22 +247,22 @@ export default function ProfileScreen() {
       <SectionTitle title="Library card" />
       <View className="mb-7">
         <LibraryCard
-          readerId={user?.readerId ?? "READ-2024-001"}
-          readerName={user?.name ?? "Library Reader"}
-          memberSince="Sept 2026"
-          branchName="Main Branch"
-          libraryName="Ahmedabad Library"
+          readerId={profile?.readerId ?? "—"}
+          readerName={profile?.fullName ?? user?.name ?? "Library Reader"}
+          memberSince={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "—"}
+          branchName={profile?.branchName ?? "—"}
+          libraryName={profile?.libraryName ?? "—"}
         />
       </View>
 
       <SectionTitle title="Personal details" />
       <View className="rounded-[28px] bg-white border border-border px-4 mb-7">
         {[
-          { label: user?.email ?? "faizan@library.com", icon: Mail },
-          { label: "+91 98765 43210", icon: Phone },
-          { label: "Central Library, Mumbai", icon: MapPin },
-        ].map(({ label, icon: Icon }, index) => (
-          <View key={label} className={`flex-row items-center py-4 ${index < 2 ? "border-b border-border" : ""}`}>
+          { id: "email", label: profile?.email ?? user?.email ?? "—", icon: Mail },
+          { id: "phone", label: profile?.phone ?? "—", icon: Phone },
+          { id: "address", label: profile?.address ? `${profile.address.line}, ${profile.address.city}` : "—", icon: MapPin },
+        ].map(({ id, label, icon: Icon }, index) => (
+          <View key={id} className={`flex-row items-center py-4 ${index < 2 ? "border-b border-border" : ""}`}>
             <View className="w-10 h-10 rounded-2xl bg-primary-50 items-center justify-center"><Icon size={18} stroke="#EA580C" /></View>
             <Text className="ml-3 flex-1 text-sm font-medium text-ink-soft">{label}</Text>
             <ChevronRight size={18} stroke="#B1AAA0" />

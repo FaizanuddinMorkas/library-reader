@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/utils";
 import { LendingRecord } from "@/types/reader";
 
 interface ActiveLoanCardProps {
-  loan: LendingRecord;
+  loan: LendingRecord & { coverUrl?: string };
   onPress?: () => void;
 }
 
@@ -21,7 +21,7 @@ export function ActiveLoanCard({ loan, onPress }: ActiveLoanCardProps) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <Card style={{ width: 200, marginRight: 12 }}>
-        <BookCover title={loan.bookTitle} className="w-full h-24 rounded-lg mb-3" fallbackColor="#9CA3AF" />
+        <BookCover title={loan.bookTitle} className="w-full h-24 rounded-lg mb-3" fallbackColor="#9CA3AF" coverUrl={loan.coverUrl} />
         <Text className="text-sm font-semibold text-gray-900" numberOfLines={2}>
           {loan.bookTitle}
         </Text>

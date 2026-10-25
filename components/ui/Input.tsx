@@ -1,41 +1,38 @@
-import { View, Text, TextInput, TextInputProps } from "react-native";
+import { View, Text, TextInput, StyleSheet, TextInputProps } from "react-native";
 import { cn } from "@/lib/utils";
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
   leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
 }
 
 export function Input({
   label,
   error,
   leftIcon,
-  rightIcon,
   style,
   ...props
 }: InputProps) {
   return (
     <View className="mb-4">
       {label && (
-        <Text className="text-sm font-medium text-ink mb-1">
+        <Text className="text-sm font-medium text-gray-700 mb-1">
           {label}
         </Text>
       )}
       <View
         className={cn(
-          "flex-row items-center bg-surface border rounded-xl px-4 py-3",
-          error ? "border-danger" : "border-border"
+          "flex-row items-center bg-gray-50 border rounded-xl px-4 py-3",
+          error ? "border-danger" : "border-gray-200"
         )}
       >
-        {leftIcon && <View className="mr-3 text-ink-muted">{leftIcon}</View>}
+        {leftIcon && <View className="mr-3">{leftIcon}</View>}
         <TextInput
-          className="flex-1 text-base text-ink"
-          placeholderTextColor="#94A3B8"
+          className="flex-1 text-base text-gray-900"
+          placeholderTextColor="#9CA3AF"
           {...props}
         />
-        {rightIcon && <View className="ml-3">{rightIcon}</View>}
       </View>
       {error && (
         <Text className="text-xs text-danger mt-1">{error}</Text>

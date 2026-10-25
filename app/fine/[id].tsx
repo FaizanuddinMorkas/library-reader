@@ -1,21 +1,17 @@
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { TouchableOpacity } from "react-native";
 import ArrowLeft from "lucide-react-native/icons/arrow-left";
-import Book from "lucide-react-native/icons/book";
 import DollarSign from "lucide-react-native/icons/dollar-sign";
 import Clock from "lucide-react-native/icons/clock";
-import Calendar from "lucide-react-native/icons/calendar";
 import AlertCircle from "lucide-react-native/icons/circle-alert";
 import CheckCircle from "lucide-react-native/icons/circle-check";
 import CreditCard from "lucide-react-native/icons/credit-card";
 import { Screen } from "@/components/ui/Screen";
 import { Button } from "@/components/ui/Button";
-import { mockLoans, mockBooks } from "@/lib/mockData";
+import { useLoan } from "@/hooks/useLoan";
 import { calculateDaysUntilDue, formatDate } from "@/lib/utils";
 import { BookCover } from "@/components/library/BookCover";
 
-// Mock fine payment history
 interface FinePayment {
   id: string;
   loanId: string;
@@ -25,21 +21,14 @@ interface FinePayment {
   note?: string;
 }
 
-const mockFineHistory: FinePayment[] = [
-  {
-    id: "fine_001",
-    loanId: "loan_002",
-    amount: 50,
-    paidAt: "",
-    status: "pending",
-    note: "Overdue 14 days at ₹5/day",
-  },
-];
-
 export default function FineDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const loan = mockLoans.find((l) => l.id === id);
+  const { loan, book, isLoading } = useLoan(id);
+
+  if (isLoading) {
+    return <Screen><View className="flex-1 items-center justify-center"><Text className="text-sm text-ink-muted">Loading fine details...</Text></View></Screen>;
+  }
 
   if (!loan) {
     return (
@@ -58,13 +47,12 @@ export default function FineDetailScreen() {
   }
 
   const isOverdue = loan.status === "overdue";
-  const book = mockBooks.find((b) => b.id === loan.bookId);
   const daysUntilDue = calculateDaysUntilDue(loan.dueDate);
   const overdueDays = Math.abs(daysUntilDue);
   const fineRatePerDay = 5;
   const calculatedFine = overdueDays * fineRatePerDay;
 
-  const fineHistory = mockFineHistory.filter((f) => f.loanId === id);
+  const fineHistory: FinePayment[] = [];
 
   const totalFine = loan.fineAmount ?? 0;
   const paidAmount = fineHistory
@@ -88,7 +76,7 @@ export default function FineDetailScreen() {
     <Screen header={header}>
       {/* Loan summary */}
         <View className="flex-row gap-3 mb-4">
-          <BookCover title={loan.bookTitle} className="w-[60px] h-[88px] rounded-[12px]" fallbackColor={book?.coverColor} />
+          <BookCover title={loan.bookTitle} className="w-[60px] h-[88px] rounded-[12px]" coverUrl={book?.coverUrl} />
           <View className="flex-1 justify-between py-1">
             <View>
               <Text

@@ -7,7 +7,6 @@ import Info from "lucide-react-native/icons/info";
 import Bell from "lucide-react-native/icons/bell";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Screen } from "@/components/ui/Screen";
-import { mockNotifications } from "@/lib/mockData";
 import { formatDate } from "@/lib/utils";
 import type { Notification } from "@/types/user";
 
@@ -20,7 +19,7 @@ const NOTIFICATION_ICONS: Record<Notification["type"], { icon: typeof Info; colo
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

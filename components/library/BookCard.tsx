@@ -28,11 +28,11 @@ export function BookCard({ book, onPress }: BookCardProps) {
       activeOpacity={0.82}
       className="rounded-2xl bg-white border border-border p-3"
     >
-      <BookCover title={book.name} className="w-full aspect-[3/4] rounded-xl mb-3" fallbackColor={book.coverColor} />
+      <BookCover title={book.name} className="w-full aspect-[3/4] rounded-xl mb-3" fallbackColor={book.coverColor} coverUrl={book.coverUrl} />
 
       {/* Title */}
       <Text className="text-sm font-bold text-ink" numberOfLines={2}>
-        {book.name}
+        {book.name}{book.volumeNo ? ` · Vol. ${book.volumeNo}` : ""}
       </Text>
 
       {/* Author */}

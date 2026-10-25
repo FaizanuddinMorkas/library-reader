@@ -2,16 +2,17 @@ import { useState } from "react";
 import {
   View,
   Text,
-  KeyboardAvoidingView,
-  ScrollView,
   TouchableOpacity,
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { KeyboardAwareScreen } from "@/components/ui/KeyboardAwareScreen";
 import Mail from "lucide-react-native/icons/mail";
 import ArrowLeft from "lucide-react-native/icons/arrow-left";
+import { authApi } from "@/lib/api/authApi";
+import { isValidEmail } from "@/lib/validation";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -20,16 +21,24 @@ export default function ForgotPasswordScreen() {
   const [sent, setSent] = useState(false);
 
   const handleSend = async () => {
-    if (!email) {
+    if (!email.trim()) {
       Alert.alert("Error", "Please enter your email");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      Alert.alert("Error", "Please enter a valid email address");
       return;
     }
 
     setLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setLoading(false);
-    setSent(true);
+    try {
+      await authApi.forgotPassword(email.trim());
+      setSent(true);
+    } catch {
+      Alert.alert("Error", "We could not send the reset link. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {
@@ -57,51 +66,43 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior="padding"
-      className="flex-1 bg-background"
-    >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="flex-1 px-6 py-12">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="flex-row items-center mb-8"
-          >
-            <ArrowLeft size={20} stroke="#374151" />
-            <Text className="text-gray-700 ml-2">Back</Text>
-          </TouchableOpacity>
+    <KeyboardAwareScreen>
+      <View className="flex-1 px-6 py-12">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="flex-row items-center mb-8"
+        >
+          <ArrowLeft size={20} stroke="#374151" />
+          <Text className="text-gray-700 ml-2">Back</Text>
+        </TouchableOpacity>
 
-          <Text className="text-2xl font-bold text-gray-900">
-            Forgot Password
-          </Text>
-          <Text className="text-sm text-gray-500 mt-2">
-            Enter your email address and we{"'"}ll send you a link to reset your
-            password.
-          </Text>
+        <Text className="text-2xl font-bold text-gray-900">
+          Forgot Password
+        </Text>
+        <Text className="text-sm text-gray-500 mt-2">
+          Enter your email address and we{"'"}ll send you a link to reset your
+          password.
+        </Text>
 
-          <View className="mt-8">
-            <Input
-              label="Email"
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              leftIcon={<Mail size={20} stroke="#9CA3AF" />}
-            />
+        <View className="mt-8">
+          <Input
+            label="Email"
+            placeholder="Enter your email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            leftIcon={<Mail size={20} stroke="#9CA3AF" />}
+          />
 
-            <Button
-              title="Send Reset Link"
-              onPress={handleSend}
-              loading={loading}
-              size="lg"
-            />
-          </View>
+          <Button
+            title="Send Reset Link"
+            onPress={handleSend}
+            loading={loading}
+            size="lg"
+          />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </KeyboardAwareScreen>
   );
 }

@@ -5,6 +5,7 @@ import {
   mockBooks,
   mockBorrowingHistory,
   CATEGORIES,
+  MOCK_BOOK_CATEGORIES,
   DONATION_PRESETS,
   findMockBookByBarcode,
   searchMockEbooks,
@@ -83,6 +84,13 @@ describe("mockData", () => {
         expect(ebook.title.length).toBeGreaterThan(0);
       });
     });
+
+    it("uses managed category IDs for the Dawat-e-Islami catalog", () => {
+      mockEbooks.forEach((ebook) => {
+        expect(ebook.categoryId).toBeTruthy();
+        expect(MOCK_BOOK_CATEGORIES.map((category) => category.id)).toContain(ebook.categoryId);
+      });
+    });
   });
 
   describe("mockBorrowingHistory", () => {
@@ -118,6 +126,13 @@ describe("mockData", () => {
         expect(book).toHaveProperty("shelfNumber");
       });
     });
+
+    it("uses managed category IDs for physical books", () => {
+      mockBooks.forEach((book) => {
+        expect(book.categoryId).toBeTruthy();
+        expect(MOCK_BOOK_CATEGORIES.map((category) => category.id)).toContain(book.categoryId);
+      });
+    });
   });
 
   describe("mock catalog search", () => {
@@ -147,6 +162,10 @@ describe("mockData", () => {
 
     it("includes 'All' as the first category", () => {
       expect(CATEGORIES[0]).toBe("All");
+    });
+
+    it("matches the managed Dawat-e-Islami category names", () => {
+      expect(CATEGORIES.slice(1)).toEqual(MOCK_BOOK_CATEGORIES.map((category) => category.name));
     });
   });
 

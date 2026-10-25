@@ -1,9 +1,15 @@
+import type { ImageSourcePropType } from "react-native";
+
 export interface Book {
   id: string;
   branchId: string;
+  parentBookId?: string;
+  volumeNo?: string;
+  volumes?: BookVolumeSummary[];
   name: string;
   isbn?: string;
   category: string;
+  categoryId?: string;
   totalPages: number;
   publisher: string;
   authorName: string;
@@ -13,11 +19,21 @@ export interface Book {
   copies: number;
   availableCopies: number;
   coverColor?: string;
+  coverUrl?: string;
   shelfNumber: string;
   barcode: string;
   status: "available" | "low-stock" | "out-of-stock";
   isArchived?: boolean;
   createdAt: string;
+}
+
+export interface BookVolumeSummary {
+  id: string;
+  volumeNo?: string;
+  copies: number;
+  availableCopies: number;
+  shelfNumber: string;
+  branchId: string;
 }
 
 export interface BookCopy {
@@ -26,8 +42,8 @@ export interface BookCopy {
   branchId: string;
   barcode: string;
   shelfLocation: string;
-  condition: "good" | "damaged" | "lost";
-  status: "available" | "checked-out" | "lost";
+  condition: "excellent" | "good" | "minor_wear" | "worn" | "damaged" | "unusable";
+  status: "available" | "on_hold" | "checked-out" | "in_repair" | "lost" | "withdrawn";
   addedAt: string;
 }
 
@@ -38,6 +54,7 @@ export interface EBook {
   title: string;
   author: string;
   category: string;
+  categoryId?: string;
   coverUrl: string | ImageSourcePropType;
   pdfUrl: string;
   accessType: "free" | "members-only";
@@ -58,4 +75,3 @@ export interface BookStats {
 
 export type CopyCondition = BookCopy["condition"];
 export type CopyStatus = BookCopy["status"];
-import type { ImageSourcePropType } from "react-native";

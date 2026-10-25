@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import ArrowLeft from "lucide-react-native/icons/arrow-left";
 import Clock from "lucide-react-native/icons/clock";
@@ -9,14 +10,67 @@ import Building from "lucide-react-native/icons/building";
 import BookOpen from "lucide-react-native/icons/book-open";
 import { Screen } from "@/components/ui/Screen";
 import { Button } from "@/components/ui/Button";
-import { mockLoans, mockBooks } from "@/lib/mockData";
+import { useLoan } from "@/hooks/useLoan";
 import { calculateDaysUntilDue, formatDate } from "@/lib/utils";
 import { BookCover } from "@/components/library/BookCover";
 
 export default function LoanDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const loan = mockLoans.find((l) => l.id === id);
+  const { loan, book, readingHistory, historyError, isLoadingMoreHistory, loadMoreHistory, isLoading, saveProgress } = useLoan(id);
+  const [progressMode, setProgressMode] = useState<"range" | "count">("count");
+  const [fromPage, setFromPage] = useState("");
+  const [toPage, setToPage] = useState("");
+  const [pagesReadCount, setPagesReadCount] = useState("");
+  const [progressError, setProgressError] = useState("");
+  const [progressSaved, setProgressSaved] = useState(false);
+  const [isSavingProgress, setIsSavingProgress] = useState(false);
+
+  const saveReadingProgress = async () => {
+    setProgressError("");
+    setProgressSaved(false);
+
+    const parseWholeNumber = (value: string) => /^\d+$/.test(value.trim()) ? Number(value.trim()) : null;
+    let progress: { pagesReadFrom: number; pagesReadTo: number } | { pagesReadCount: number };
+
+    if (progressMode === "range") {
+      const from = parseWholeNumber(fromPage);
+      const to = parseWholeNumber(toPage);
+      if (from === null || to === null || from < 1 || to < 1) {
+        setProgressError("Enter both page numbers as whole numbers starting from 1.");
+        return;
+      }
+      if (to < from) {
+        setProgressError("The to-page must be greater than or equal to the from-page.");
+        return;
+      }
+      progress = { pagesReadFrom: from, pagesReadTo: to };
+    } else {
+      const count = parseWholeNumber(pagesReadCount);
+      if (count === null || count < 0) {
+        setProgressError("Enter the number of pages read as a whole number (0 or more).");
+        return;
+      }
+      progress = { pagesReadCount: count };
+    }
+
+    setIsSavingProgress(true);
+    try {
+      await saveProgress(progress);
+      setFromPage("");
+      setToPage("");
+      setPagesReadCount("");
+      setProgressSaved(true);
+    } catch (error) {
+      setProgressError(error instanceof Error ? error.message : "Unable to save reading progress. Try again.");
+    } finally {
+      setIsSavingProgress(false);
+    }
+  };
+
+  if (isLoading) {
+    return <Screen><View className="flex-1 items-center justify-center"><Text className="text-sm text-ink-muted">Loading loan details...</Text></View></Screen>;
+  }
 
   if (!loan) {
     return (
@@ -34,8 +88,8 @@ export default function LoanDetailScreen() {
     );
   }
 
-  const book = mockBooks.find((b) => b.id === loan.bookId);
   const isReturned = loan.status === "returned";
+  const canUpdateProgress = loan.status === "checked-out" || loan.status === "overdue";
   // Derive overdue from the actual due date, not the status field.
   // This protects against stale status data (e.g. a "checked-out" loan
   // whose due date has already passed).
@@ -54,10 +108,9 @@ export default function LoanDetailScreen() {
       (1000 * 60 * 60 * 24)
   );
 
-  const readPct = book && loan.currentPage
+  const readPct = book?.totalPages && loan.currentPage
     ? Math.min(100, Math.ceil((loan.currentPage / book.totalPages) * 100))
     : 0;
-  const fineColor = !loan.fineAmount || loan.fineAmount === 0 ? "#059669" : "#DC2626";
   const fineBg = !loan.fineAmount || loan.fineAmount === 0 ? "bg-green-50 border-green-100" : "bg-red-50 border-red-100";
   const fineTextColor = !loan.fineAmount || loan.fineAmount === 0 ? "text-green-700" : "text-red-700";
 
@@ -98,7 +151,7 @@ export default function LoanDetailScreen() {
     <Screen header={header}>
       {/* Hero: Book Cover + Book Info */}
         <View className="flex-row gap-4 mt-2 mb-4">
-          <BookCover title={loan.bookTitle} className="w-[100px] h-[148px] rounded-[16px] self-start" fallbackColor={book?.coverColor} />
+          <BookCover title={loan.bookTitle} className="w-[100px] h-[148px] rounded-[16px] self-start" coverUrl={book?.coverUrl} />
 
           <View className="flex-1 justify-between py-1">
             <View>
@@ -108,24 +161,24 @@ export default function LoanDetailScreen() {
               >
                 {loan.bookTitle}
               </Text>
-              {book && (
+              {(loan.book ?? book) && (
                 <Text className="text-xs text-ink-soft mb-0.5">
-                  {book.authorName}
+                  {(loan.book ?? book)?.authorName}
                 </Text>
               )}
               <Text className="text-xs text-ink-soft">
-                {book ? `ISBN ${book.isbn}` : loan.bookBarcode}
+                {(loan.book ?? book) ? `ISBN ${(loan.book ?? book)?.isbn ?? loan.bookBarcode}` : loan.bookBarcode}
               </Text>
-              {book && (
+              {(loan.book ?? book) && (
                 <View className="flex-row items-center gap-1.5 mt-1 flex-wrap">
                   <View className="bg-muted-50 rounded-full px-2 py-0.5">
-                    <Text className="text-xs text-ink-soft">{book.category}</Text>
+                    <Text className="text-xs text-ink-soft">{(loan.book ?? book)?.category}</Text>
                   </View>
                   <View className="bg-muted-50 rounded-full px-2 py-0.5">
-                    <Text className="text-xs text-ink-soft">{book.publisher}</Text>
+                    <Text className="text-xs text-ink-soft">{(loan.book ?? book)?.publisher}</Text>
                   </View>
                   <View className="bg-muted-50 rounded-full px-2 py-0.5">
-                    <Text className="text-xs text-ink-soft">{book.totalPages} pg</Text>
+                    <Text className="text-xs text-ink-soft">{(loan.book ?? book)?.totalPages} pg</Text>
                   </View>
                 </View>
               )}
@@ -214,6 +267,97 @@ export default function LoanDetailScreen() {
               Fine amount
             </Text>
           </View>
+        </View>
+
+        <View className="rounded-[20px] bg-white border border-border p-4 mb-4">
+          <Text className="text-sm font-bold text-ink">Reading history</Text>
+          <Text className="text-xs text-ink-soft mt-1">
+            Pages read during this lending: {loan.currentLendingPagesReadCount ?? 0}
+          </Text>
+          <Text className="text-xs text-ink-soft mt-1 mb-3">
+            Across all lendings of this book: {readingHistory?.bookPagesReadTotal ?? 0} pages
+          </Text>
+
+          {historyError && <Text accessibilityRole="alert" className="text-xs text-red-600 mb-3">{historyError.message}</Text>}
+          {readingHistory?.lendingPeriods.map((period) => {
+            const entries = readingHistory.data.filter((entry) => entry.loanId === period.loanId);
+            return (
+              <View key={period.loanId} className="border-t border-border py-3">
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="flex-1 text-xs font-bold text-ink">
+                    {period.loanId === loan.id ? "This lending" : "Previous lending"} · {formatDate(period.issueDate)}
+                  </Text>
+                  <Text className="text-xs font-semibold text-ink-soft">{period.pagesReadCount} pages</Text>
+                </View>
+                {period.returnDate && <Text className="text-[11px] text-ink-muted mt-1">Returned {formatDate(period.returnDate)}</Text>}
+                {period.legacySummary && (
+                  <Text className="text-xs text-ink-muted mt-2">Legacy summary · date unavailable</Text>
+                )}
+                {entries.map((entry) => (
+                  <View key={entry.id} className="mt-2 flex-row items-center justify-between">
+                    <Text className="text-xs text-ink-soft">{formatDate(entry.createdAt)}</Text>
+                    <Text className="text-xs text-ink">
+                      {entry.pagesReadFrom !== undefined && entry.pagesReadTo !== undefined
+                        ? `Pages ${entry.pagesReadFrom}–${entry.pagesReadTo} · ${entry.pagesReadCount} read`
+                        : `${entry.pagesReadCount} pages read`}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            );
+          })}
+          {readingHistory && readingHistory.data.length < readingHistory.total && (
+            <TouchableOpacity accessibilityRole="button" onPress={() => { void loadMoreHistory(); }} disabled={isLoadingMoreHistory} className="items-center py-3">
+              <Text className="text-sm font-semibold text-primary-700">{isLoadingMoreHistory ? "Loading…" : "Load older reading entries"}</Text>
+            </TouchableOpacity>
+          )}
+          {readingHistory?.data.length === 0 && readingHistory.lendingPeriods.every((period) => !period.legacySummary) && (
+            <Text className="text-xs text-ink-muted mb-3">No dated reading sessions recorded yet.</Text>
+          )}
+
+          {canUpdateProgress && (
+            <>
+              <View className="flex-row gap-2 mb-3">
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: progressMode === "range" }}
+                  onPress={() => { setProgressMode("range"); setProgressError(""); setProgressSaved(false); }}
+                  className={`flex-1 rounded-xl border px-3 py-3 ${progressMode === "range" ? "bg-primary-50 border-primary-300" : "bg-white border-border"}`}
+                >
+                  <Text className={`text-center text-sm font-semibold ${progressMode === "range" ? "text-primary-700" : "text-ink-soft"}`}>From / to pages</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: progressMode === "count" }}
+                  onPress={() => { setProgressMode("count"); setProgressError(""); setProgressSaved(false); }}
+                  className={`flex-1 rounded-xl border px-3 py-3 ${progressMode === "count" ? "bg-primary-50 border-primary-300" : "bg-white border-border"}`}
+                >
+                  <Text className={`text-center text-sm font-semibold ${progressMode === "count" ? "text-primary-700" : "text-ink-soft"}`}>Pages read</Text>
+                </TouchableOpacity>
+              </View>
+
+              {progressMode === "range" ? (
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Text className="text-xs font-semibold text-ink-soft mb-1">From page</Text>
+                    <TextInput value={fromPage} onChangeText={(value) => { setFromPage(value); setProgressSaved(false); }} keyboardType="number-pad" accessibilityLabel="From page" placeholder="1" placeholderTextColor="#8A857C" className="h-12 rounded-xl bg-white border border-border px-3 text-base text-ink" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xs font-semibold text-ink-soft mb-1">To page</Text>
+                    <TextInput value={toPage} onChangeText={(value) => { setToPage(value); setProgressSaved(false); }} keyboardType="number-pad" accessibilityLabel="To page" placeholder="20" placeholderTextColor="#8A857C" className="h-12 rounded-xl bg-white border border-border px-3 text-base text-ink" />
+                  </View>
+                </View>
+              ) : (
+                <View>
+                  <Text className="text-xs font-semibold text-ink-soft mb-1">Pages read in this session</Text>
+                  <TextInput value={pagesReadCount} onChangeText={(value) => { setPagesReadCount(value); setProgressSaved(false); }} keyboardType="number-pad" accessibilityLabel="Number of pages read" placeholder="0" placeholderTextColor="#8A857C" className="h-12 rounded-xl bg-white border border-border px-3 text-base text-ink" />
+                </View>
+              )}
+              {!!progressError && <Text accessibilityRole="alert" className="text-sm text-red-600 mt-3">{progressError}</Text>}
+              {progressSaved && <Text accessibilityRole="text" className="text-sm text-green-700 mt-3">Reading progress saved.</Text>}
+              <Button variant="primary" size="md" title="Save progress" onPress={() => { void saveReadingProgress(); }} loading={isSavingProgress} disabled={isSavingProgress} className="mt-3" />
+            </>
+          )}
         </View>
 
         {/* Loan info card */}

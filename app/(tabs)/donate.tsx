@@ -25,7 +25,6 @@ export default function DonateScreen() {
   const [isCustom, setIsCustom] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
   const [method, setMethod] = useState<"card" | "wallet">("card");
-  const [loading, setLoading] = useState(false);
   const [receipt, setReceipt] = useState<{
     transactionId: string;
     amount: number;
@@ -34,22 +33,8 @@ export default function DonateScreen() {
 
   const finalAmount = isCustom ? parseInt(customAmount) || 0 : amount ?? 0;
 
-  const handleDonate = async () => {
-    if (finalAmount < 10) {
-      Alert.alert("Error", "Minimum donation amount is INR 10");
-      return;
-    }
-
-    setLoading(true);
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setLoading(false);
-
-    setReceipt({
-      transactionId: "TXN" + Date.now(),
-      amount: finalAmount,
-      date: new Date().toISOString(),
-    });
+  const handleDonate = () => {
+    Alert.alert("Donations unavailable", "Donation payments are not available yet.");
   };
 
   const handleReset = () => {
@@ -284,10 +269,9 @@ export default function DonateScreen() {
       </View>
 
       <Button
-        title={`Donate INR ${finalAmount}`}
+        title="Donations unavailable"
         onPress={handleDonate}
-        loading={loading}
-        disabled={finalAmount < 10}
+        disabled
         size="lg"
         variant="gradient"
       />

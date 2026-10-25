@@ -1,6 +1,8 @@
 import { Redirect } from "expo-router";
+import Constants from "expo-constants";
 import { ActivityIndicator, Text, View } from "react-native";
 import { useAuthStore } from "@/store/authStore";
+import KioskScreen from "@/components/kiosk/KioskScreen";
 
 export function getInitialRoute(hasHydrated: boolean, isAuthenticated: boolean) {
   if (!hasHydrated) return null;
@@ -8,6 +10,12 @@ export function getInitialRoute(hasHydrated: boolean, isAuthenticated: boolean) 
 }
 
 export default function IndexRoute() {
+  if (Constants.expoConfig?.extra?.appVariant === "kiosk") return <KioskScreen />;
+
+  return <ReaderIndexRoute />;
+}
+
+function ReaderIndexRoute() {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const route = getInitialRoute(hasHydrated, isAuthenticated);

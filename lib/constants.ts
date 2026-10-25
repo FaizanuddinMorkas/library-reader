@@ -1,16 +1,11 @@
-import { Platform } from "react-native";
+const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim().replace(/\/+$/, "") || "https://libraryapi.ditest.in/api";
 
 // API Configuration
 export const API_CONFIG = {
-  // Use the same backend as the web frontend
-  baseURL: Platform.select({
-    android: "http://10.0.2.2:4000/api",   // Android emulator localhost
-    ios: "http://localhost:4000/api",       // iOS simulator localhost
-    web: "http://localhost:4000/api",       // Web browser
-    default: "http://localhost:4000/api",
-  }),
+  baseURL: apiBaseUrl,
   timeout: 15000,
   retryAttempts: 3,
+  enableApiLogs: __DEV__,
 };
 
 // Storage Keys
@@ -31,16 +26,6 @@ export const APP_CONFIG = {
   maxLoanDays: 14,
   maxActiveLoans: 5,
   donationPresets: [100, 250, 500, 1000],
-  categories: [
-    "All",
-    "Self-Help",
-    "Finance",
-    "Psychology",
-    "History",
-    "Fiction",
-    "Science",
-    "Technology",
-  ],
 } as const;
 
 // Routes

@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
   <uses-permission android:name="android.permission.CAMERA"/>
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+  <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
@@ -12,14 +14,21 @@
       <data android:scheme="https"/>
     </intent>
   </queries>
-  <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="true" android:enableOnBackInvokedCallback="false" android:fullBackupContent="@xml/secure_store_backup_rules" android:dataExtractionRules="@xml/secure_store_data_extraction_rules">
-    <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
+  <application android:name=".MainApplication" android:label="${appName}" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="true" android:enableOnBackInvokedCallback="false" android:fullBackupContent="@xml/secure_store_backup_rules" android:dataExtractionRules="@xml/secure_store_data_extraction_rules">
+    <provider android:name="com.facebook.react.modules.blob.BlobProvider" android:authorities="${applicationId}.blobs" android:exported="false"/>
+    <meta-data android:name="expo.modules.updates.CODE_SIGNING_CERTIFICATE" android:value="-----BEGIN CERTIFICATE-----&#xA;MIIC2zCCAcOgAwIBAgIJALIqmzteAxm/MA0GCSqGSIb3DQEBCwUAMBcxFTATBgNV&#xA;BAMTDExpYnJhcnktZGVtbzAeFw0yNjEwMjUxMDE1MzNaFw0zNjEwMjUxMDE1MzNa&#xA;MBcxFTATBgNVBAMTDExpYnJhcnktZGVtbzCCASIwDQYJKoZIhvcNAQEBBQADggEP&#xA;ADCCAQoCggEBAM0BW0H91/TROsCU7y+sDHPIH3kORmj1Blk8cYp8CO2+LRiMEK3K&#xA;6x91bfu+lCBsZW44vgavS9KeMDxtcjfojKBu9lvjCXwbfDLvWTX92ZKCUbmDaj3X&#xA;kxizgr9Qlm3M1By1aNOUDkPQ3xi+v8bWABOmfX2Vbv0Iheg/6FLU+02ZjpqjcDVM&#xA;yHgJreuGIMvEd1Mt2k1zT4e7/1LtOHzZWwIc0AE8GUAXdwUVbtwpWxakEw/13tEo&#xA;tPXy2obYOddvZhYhhVLQ9Vs1brhRdISKUmwgxTrb72dWXAfGa/PRDe4XywsOedz0&#xA;2RRgXWmInjq0SVGvzot0oERo7pq78KiNGbkCAwEAAaMqMCgwDgYDVR0PAQH/BAQD&#xA;AgeAMBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMDMA0GCSqGSIb3DQEBCwUAA4IBAQAi&#xA;aOkPecB/1o3JNg55t9VU+csVdYt9Drq6T/GgiJx5pLVplO6dLQoR8HgajYfWrIWQ&#xA;x4o5tOUMObblG9+vbG4JaJIj0pLAuolhxCD2QVOQDOWkiQ4csUnN/409U341poP4&#xA;9KEm0uNw2PuWMosz6J1jhcFgvhOvjeoY01wHzwPkccZaDRYUB9DdEgE/wwAIWQ88&#xA;WIS2kFskRnU3tdOs+KG0Z7M6YHOvo5EgN3ohS2WTGGYlqSgVpxtPOZ1XKvy+I+kf&#xA;9dV5+uK1tQA4bWfgNU/02YZk3YxLWvrXXzz31OeDyw9/hgLiiKqYFQKfaFLguxDN&#xA;vHrePldchpEteWI3GRlF&#xA;-----END CERTIFICATE-----&#xA;"/>
+    <meta-data android:name="expo.modules.updates.CODE_SIGNING_METADATA" android:value="{&quot;keyid&quot;:&quot;main&quot;,&quot;alg&quot;:&quot;rsa-v1_5-sha256&quot;}"/>
+    <meta-data android:name="expo.modules.updates.ENABLED" android:value="true"/>
     <meta-data android:name="expo.modules.updates.ENABLE_BSDIFF_PATCH_SUPPORT" android:value="true"/>
+    <meta-data android:name="expo.modules.updates.EXPO_RUNTIME_VERSION" android:value="@string/expo_runtime_version"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
+    <meta-data android:name="expo.modules.updates.EXPO_UPDATE_URL" android:value="https://updates.quicktag.in/manifest"/>
+    <meta-data android:name="expo.modules.updates.UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY" android:value="{&quot;expo-channel-name&quot;:&quot;UAT&quot;,&quot;expo-app-id&quot;:&quot;d38d088f-1137-4b11-8b0d-c7285af1a1b2&quot;}"/>
     <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|smallestScreenSize|assetsPaths" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
+        <action android:name="android.intent.action.DOWNLOAD_COMPLETE"/>
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
       <intent-filter>
@@ -27,6 +36,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="library-reader"/>
+        <data android:scheme="${appScheme}"/>
       </intent-filter>
     </activity>
   </application>

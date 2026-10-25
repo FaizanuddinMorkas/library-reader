@@ -21,7 +21,7 @@ export function EbookCard({ ebook, onPress, index = 0 }: EbookCardProps) {
     >
       <View className="overflow-hidden rounded-3xl bg-white border border-border shadow-soft">
         <View className="w-full aspect-[2/3]">
-          <BookCover title={ebook.title} className="w-full h-full" fallbackColor={PASTELS[index % PASTELS.length]} />
+          <BookCover title={ebook.title} className="w-full h-full" fallbackColor={PASTELS[index % PASTELS.length]} coverUrl={typeof ebook.coverUrl === "string" ? ebook.coverUrl : undefined} />
           <View className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-white/90 flex-row items-center">
             {ebook.accessType === "members-only" && <Lock size={10} stroke="#57534E" />}
             <Text className="text-[10px] font-bold text-ink-soft ml-1">

@@ -90,6 +90,9 @@ export function Button({
         style={[{ borderRadius: 12 }, style]}
       >
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={title}
+          accessibilityState={{ disabled: disabled || loading }}
           onPress={onPress}
           disabled={disabled || loading}
           className={cn(
@@ -109,6 +112,9 @@ export function Button({
 
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: disabled || loading }}
       className={cn(baseStyles, className)}
       onPress={onPress}
       disabled={disabled || loading}

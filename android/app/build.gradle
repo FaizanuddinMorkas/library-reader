@@ -3,6 +3,7 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
+def isKioskVariant = System.getenv("APP_VARIANT") == "kiosk"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -90,6 +91,13 @@ android {
     namespace 'com.libraryos.reader'
     defaultConfig {
         applicationId 'com.libraryos.reader'
+        if (isKioskVariant) {
+            applicationId 'com.libraryos.kiosk'
+        }
+        manifestPlaceholders = [
+            appName: isKioskVariant ? 'LibraryOS Kiosk' : 'LibraryOS Reader',
+            appScheme: isKioskVariant ? 'libraryos-kiosk' : 'library-reader',
+        ]
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -122,6 +130,12 @@ android {
         }
     }
     packagingOptions {
+        pickFirst 'lib/x86/libc++_shared.so'
+        pickFirst 'lib/x86_64/libjsc.so'
+        pickFirst 'lib/arm64-v8a/libjsc.so'
+        pickFirst 'lib/arm64-v8a/libc++_shared.so'
+        pickFirst 'lib/x86_64/libc++_shared.so'
+        pickFirst 'lib/armeabi-v7a/libc++_shared.so'
         jniLibs {
             def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
             useLegacyPackaging enableLegacyPackaging.toBoolean()

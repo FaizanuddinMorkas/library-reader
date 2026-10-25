@@ -6,6 +6,10 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "reader",
+        "OTA_CHANNEL": "UAT"
+      },
       "ios": {
         "simulator": false
       },
@@ -15,6 +19,10 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "reader",
+        "OTA_CHANNEL": "UAT"
+      },
       "ios": {
         "simulator": false
       },
@@ -23,11 +31,34 @@
       }
     },
     "production": {
+      "env": {
+        "APP_VARIANT": "reader",
+        "OTA_CHANNEL": "reader-production"
+      },
       "ios": {
         "autoIncrement": true
       },
       "android": {
         "autoIncrement": true
+      }
+    },
+    "kiosk-development": {
+      "extends": "development",
+      "env": {
+        "APP_VARIANT": "kiosk"
+      }
+    },
+    "kiosk-preview": {
+      "extends": "preview",
+      "env": {
+        "APP_VARIANT": "kiosk"
+      }
+    },
+    "kiosk-production": {
+      "extends": "production",
+      "env": {
+        "APP_VARIANT": "kiosk",
+        "OTA_CHANNEL": "kiosk-production"
       }
     }
   },

@@ -12,6 +12,30 @@ export { mockUser } from "@/lib/mockUser";
 // re-align).
 const TODAY = new Date("2026-09-01T00:00:00Z");
 
+export const MOCK_BOOK_CATEGORIES = [
+  {
+    id: "global-cat-akhlaaq-o-aadaab",
+    name: "Akhlaaq-o-Aadaab",
+    scope: "global" as const,
+    isActive: true,
+  },
+  {
+    id: "global-cat-other",
+    name: "Other",
+    scope: "global" as const,
+    isActive: true,
+  },
+  {
+    id: "global-cat-seerat",
+    name: "Seerat",
+    scope: "global" as const,
+    isActive: true,
+  },
+] as const;
+
+const categoryIdForName = (name: string) =>
+  MOCK_BOOK_CATEGORIES.find((category) => category.name === name)?.id;
+
 function daysFromNow(days: number): string {
   const d = new Date(TODAY);
   d.setUTCDate(d.getUTCDate() + days);
@@ -23,6 +47,7 @@ const DAWAT_E_ISLAMI_CATALOG = [
     title: "The Benefits of Speaking Less",
     author: "Ameer-e-Ahl-e-Sunnat",
     category: "Akhlaaq-o-Aadaab",
+    categoryId: categoryIdForName("Akhlaaq-o-Aadaab"),
     coverUrl: require("../assets/books/bt3831.png"),
     pdfUrl: "https://data2.dawateislami.net/Data/Books/Download/en/pdf/2026/3831-1.pdf?fn=the-benefits-of-speaking-less",
     description: "Official English booklet from Dawat-e-Islami on the benefits of speaking less.",
@@ -34,6 +59,7 @@ const DAWAT_E_ISLAMI_CATALOG = [
     title: "Matters of Knowlegde and Action (Part 03)",
     author: "Al Madina-tul-Ilmiyah",
     category: "Akhlaaq-o-Aadaab",
+    categoryId: categoryIdForName("Akhlaaq-o-Aadaab"),
     coverUrl: require("../assets/books/bt3833.png"),
     pdfUrl: "https://data2.dawateislami.net/Data/Books/Download/en/pdf/2026/3833-1.pdf?fn=matters-of-Knowlegde-and-action-part-03",
     description: "Official English booklet from Dawat-e-Islami about matters of knowledge and action.",
@@ -45,6 +71,7 @@ const DAWAT_E_ISLAMI_CATALOG = [
     title: "The Qur'anic Method of Inviting towards Islam",
     author: "Mufti Muhammad Qasim Attari",
     category: "Other",
+    categoryId: categoryIdForName("Other"),
     coverUrl: require("../assets/books/bt3834.png"),
     pdfUrl: "https://data2.dawateislami.net/Data/Books/Download/en/pdf/2026/3834-1.pdf?fn=the-quranic-method-of-inviting-towards-islam",
     description: "Official English booklet from Dawat-e-Islami on the Qur'anic method of inviting towards Islam.",
@@ -56,6 +83,7 @@ const DAWAT_E_ISLAMI_CATALOG = [
     title: "Attar's Fourty Hadith (Part 04)",
     author: "Ameer-e-Ahl-e-Sunnat",
     category: "Seerat",
+    categoryId: categoryIdForName("Seerat"),
     coverUrl: require("../assets/books/bt3827.png"),
     pdfUrl: "https://data2.dawateislami.net/Data/Books/Download/en/pdf/2026/3827-1.pdf?fn=attars-fourty-hadith-part-04",
     description: "Official English booklet from Dawat-e-Islami in the Attar's Fourty Hadith series.",
@@ -326,6 +354,7 @@ export const mockBooks: Book[] = Array.from({ length: 14 }, (_, index) => {
     branchId: "branch_001",
     name: catalogBook.title,
     category: catalogBook.category,
+    categoryId: catalogBook.categoryId,
     totalPages: catalogBook.totalPages,
     publisher: catalogBook.publisher,
     authorName: catalogBook.author,
@@ -334,7 +363,7 @@ export const mockBooks: Book[] = Array.from({ length: 14 }, (_, index) => {
     availableCopies,
     shelfNumber: `DI-${String(bookNumber).padStart(3, "0")}`,
     barcode: `BK-${String(bookNumber).padStart(3, "0")}-001`,
-    coverColor: ["#065F46", "#1E3A5F", "#7C2D12", "#5B21B6"][index % 4],
+    coverColor: ["#065F46", "#1E3A5F", "#7C2D12", "#5B21B6", "#0F766E", "#1D4ED8", "#B91C1C", "#7E22CE"][index % 8],
     status: availableCopies === 0 ? "out-of-stock" : availableCopies === 1 ? "low-stock" : "available",
     createdAt: `2026-${String((index % 8) + 1).padStart(2, "0")}-01T00:00:00Z`,
   };
@@ -459,9 +488,7 @@ export const mockNotifications: Notification[] = [
 
 export const CATEGORIES = [
   "All",
-  "Akhlaaq-o-Aadaab",
-  "Seerah",
-  "Other",
+  ...MOCK_BOOK_CATEGORIES.map((category) => category.name),
 ];
 
 export const DONATION_PRESETS = [100, 250, 500, 1000];
